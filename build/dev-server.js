@@ -21,6 +21,42 @@ var autoOpenBrowser = !!config.dev.autoOpenBrowser
 var proxyTable = config.dev.proxyTable
 
 var app = express()
+// api接口
+var appData = require('../data.json');
+var seller = appData.seller;
+var goods = appData.goods;
+var ratings = appData.ratings; 
+
+// 使用express快速开启服务器
+var apiRoutes = express.Router();
+
+apiRoutes.get('/seller', function(req,res){
+  res.json({
+    errno: 0,  // error number 返回的状态值 || 当数据正常接收时返回状态 0, 数据模拟仅显示 0.
+    data: seller,
+  });
+});
+
+apiRoutes.get('/goods' , function(req , res){
+  res.json({
+    errno: 0,
+    data:goods
+  });
+});
+
+apiRoutes.get('/ratings' , function(req , res){
+  res.json({
+    errno: 0,
+    data:ratings
+  });
+});
+
+// 定制路由接收的方式 em: /api/goods 接收goods的数据。
+// 本端测试 em: http://localhost:8080/api/seller || 页面显示数据为成功
+app.use('/api' , apiRoutes);
+
+
+
 var compiler = webpack(webpackConfig)
 
 var devMiddleware = require('webpack-dev-middleware')(compiler, {
