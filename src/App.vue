@@ -1,7 +1,20 @@
 <template>
   <div id="app">
   <v-header :seller='seller'></v-header>
-    <router-view></router-view>
+    <div class="tab">
+      <div class="tab-item border-1px">
+        <router-link to="/goods">商品</router-link>
+      </div>
+      <div class="tab-item">
+        <router-link to="/ratings">评论</router-link>
+      </div>
+      <div class="tab-item">
+        <router-link to="/seller">商家</router-link>
+      </div>
+    </div>
+    <keep-alive>
+      <router-view :seller="seller"></router-view>
+    </keep-alive>
   </div>
 </template>
 
@@ -23,7 +36,7 @@ export default {
       response = response.body // 每种请求的返回的参数不一样; 结合文档
       if (response.errno === ERR_OK){
         this.seller = response.data;
-        console.log(this.seller)
+        // console.log(this.seller)
       }
     });
   }
