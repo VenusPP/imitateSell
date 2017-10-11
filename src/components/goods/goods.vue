@@ -1,19 +1,46 @@
 <template>
 	<div class="goods">
-	  <div class="menu-wrapper">
+	  <div class="menu-wrapper" id="menu-wrapper">
 	  	<ul>
 	  	<!-- goods是请求到的数组,数组里是每一条对象,故需要V-for循环遍历每一条对象 -->
-	  		<li v-for="item in goods">
-	  			<span class="text">
-	  				<span v-show="item.type>-3" class="icon">>{{item.name}}</span>
+	  		<li v-for="(item,index) in goods" class="menu-item" :class="{'current':currentIndex===index}" @click="selectMenu(index,$event)">
+	  			<span class="text border-1px">
+	  				<span v-show="item.type>-3" class="icon" :class="classMap[item.type]">>{{item.name}}</span>
 	  			</span>
 	  		</li>
 	  	</ul>
 	  </div>
-	  <div class="foods-wrapper"></div>
+	  <div class="foods-wrapper" id="foods-wrapper">
+       <ul>
+         <li v-for="item in goods" class="food-list food-list-hook">
+           <h1 class="title">{{item.name}}</h1>
+           <ul>
+           <!-- 循环出来的item数组里包含有foods的数组对象需要重新循环 -->
+             <li v-for="food in item.foods" class="food-item border-1px">
+               <div class="icon">
+                 <img :src="food.icon">
+               </div>
+               <div class="content">
+                 <h2 class="name">{{food.name}}</h2>
+                 <p class="desc">{{food.description}}</p>
+                 <div class="extra">
+                   <span class="count">月售{{food.sellCount}}</span>
+                   <span>好评率{{food.rating}}%</span>
+                 </div>
+                 <div class="price">
+                   <span class="now">￥{{food.price}}</span>
+                   <span class="old" v-show="food.oldPrice">￥{{food.oldPrice}}</span>
+                 </div>
+               </div>
+             </li>
+           </ul>
+         </li>
+       </ul> 
+    </div>
 	</div>
 </template>
 <script type="text/ecmascript-6">
+  import BScroll from 'better-scroll'
   const ERR_OK = 0;
   export default {
 	 props: {
@@ -23,18 +50,70 @@
 	  },
 	  data() {
 	  	return {
-	  		goods: []
+	  		goods: [],
+        listHeight: [], // 存calculateHeight的值
+        scrollY: 0
 	  	}
 	  },
+    computed: {
+      currentIndex() {
+        for (let i=0; i<this.listHeight.length; i++) {
+          let height1 = this.listHeight[i];
+          let height2 = this.listHeight[i+1];
+          if (!height2 || (this.scrollY >= height1 && this.scrollY < height2)) { // 在height[i] 和height[i+1] 且不在最后一个height之间 返回索引
+            return i;
+          }
+        }
+          return 0; // 不在区间内就返回零
+      }
+    },
 	  created() {
+      this.classMap = ['decrease', 'discount', 'special', 'invoice', 'guarantee'];
 	  	this.$http.get('/api/goods').then((response) => { // 此处应该传成功的回调和失败的回调两个参数,鉴于mock的数据只传了一个参数
          response = response.body // 每种请求的返回的参数不一样; 结合文档
           if (response.errno === ERR_OK){
            this.goods = response.data;
-           console.log(this.goods)
+           // VUE异步处理DOM更新数据
+           this.$nextTick(() => {
+            this._initScroll();
+            this._calculateHeight(); // 获取每个list的高度
+           }) 
       	 }
 	    });
-	   }
+	   },
+     methods: {
+      selectMenu(index,event) {
+        if (!event._constructed) {
+          return  // pc优化
+        }
+        let foodList = document.getElementById('foods-wrapper').getElementsByClassName('food-list-hook');
+        let el = foodList[index] 
+        this.foodsScroll.scrollToElement(el,300) //BS接口
+        console.log(index) // 起始无效果 需要初始化传时在_initScroll click属性
+      },
+      // betterScroll使用方法 获取需要使用BS的DOM元素并在调取数据时初始化
+      _initScroll() {
+        this.meunScroll = new BScroll(document.getElementById('menu-wrapper'), {
+          click: true
+        });
+        this.foodsScroll = new BScroll(document.getElementById('foods-wrapper'), {
+          probeType: 3 // 实时监听滚动的位置无论快慢
+        });
+        this.foodsScroll.on('scroll', (pos) => { // 监听的对象为foodsSceoll
+          this.scrollY = Math.abs(Math.round(pos.y)); // 滚动取整取正
+        })
+       },
+      _calculateHeight() {
+        let foodList = document.getElementById('foods-wrapper').getElementsByClassName('food-list-hook'); // 循环后的每一个list
+        let height = 0; // 第一个高度
+        this.listHeight.push(height);
+        for (let i=0; i<foodList.length; i++) {
+          let item =foodList[i];
+          height += item.clientHeight; // 每个高度累加
+          this.listHeight.push(height);
+        }
+       }
+     }
 	 }
 
   
@@ -124,5 +203,5 @@
           .cartcontrol-wrapper
             position: absolute
             right: 0
-            bottom: 12px	
+            bottom: 12px
 </style>
